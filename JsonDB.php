@@ -72,7 +72,10 @@ class jsonDB{
     public function CreateKey($list,$key,$value){
         if(in_array($list, $this->config['list'])){
             if(IsLock($this->dbname,$list)){
-                return false;
+                while (IsLock($this->dbname, $list)) {
+                    // 等待锁文件被删除
+                    usleep(100000); // 等待100毫秒，可以根据需要调整等待时间
+                }
             }
             CreateLock($this->dbname,$list);
             $path='./db/'.$this->dbname.'/list/'.$list.'.json';
@@ -114,7 +117,10 @@ class jsonDB{
     }
     public function EditKey($list, $key, $value){
         if(IsLock($this->dbname,$list)){
-            return false;
+            while (IsLock($this->dbname, $list)) {
+                // 等待锁文件被删除
+                usleep(100000); // 等待100毫秒，可以根据需要调整等待时间
+            }
         }
         CreateLock($this->dbname,$list);
         if(!$this->IsKey($list, $key)){
