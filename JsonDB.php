@@ -1,4 +1,22 @@
 <?php
+/* v1.1 TS */
+function CreateLock($dbname,$list){
+    $path = './db/'.$dbname.'/list/'.$list.'.json';
+    touch($path);
+}
+function IsLock($dbname,$list){
+    $path = './db/'.$dbname.'/list/'.$list.'.json';
+    if(file_exists($path)){
+        return true;
+    }
+    else{
+        return false;
+    }
+}
+function DeleteLock($dbname,$list,$key){
+    $path = './db/'.$dbname.'/list/'.$list.'.json';
+    unlink($path);
+}
 class jsonDB{
     public $dbname;
     public $config;
@@ -53,10 +71,16 @@ class jsonDB{
     }
     public function CreateKey($list,$key,$value){
         if(in_array($list, $this->config['list'])){
+            if(IsLock($this->dbname,$list)){
+                return false;
+            }
+            CreateLock($this->dbname,$list);
             $path='./db/'.$this->dbname.'/list/'.$list.'.json';
             $data = json_decode(file_get_contents($path), true);
             $data[$key] = $value;
             file_put_contents($path, json_encode($data, JSON_PRETTY_PRINT));
+            DeleteLock($this->dbname,$list);
+            return true;
         }
         else{
             echo "[JsonDB] 错误!目标的列表不存在:".$list.',请尝试CreateList();';
@@ -89,6 +113,10 @@ class jsonDB{
         }
     }
     public function EditKey($list, $key, $value){
+        if(IsLock($this->dbname,$list)){
+            return false;
+        }
+        CreateLock($this->dbname,$list);
         if(!$this->IsKey($list, $key)){
             return false;
         }
@@ -101,6 +129,7 @@ class jsonDB{
     
         // 写回到文件
         file_put_contents($filePath, json_encode($data, JSON_PRETTY_PRINT));
+        DeleteLock($this->dbname,$list);
         return true;
     }
     public function Backup(){
@@ -118,16 +147,25 @@ class jsonDB{
             }
         }
     
-        // Close the archive
         $zip->close();
     }
-    function Import($path){
+    public function Import($path){
         $zip = new ZipArchive;
         if ($zip->open($path) === TRUE) {
             $zip->extractTo('./');
             $zip->close();
         } else {
             echo '[JsonDB]错误!无法处理导入文件,请确保.jdb文件路径存在以及文件格式正常!';
+        }
+    }
+    public function jsonCheck($str){
+        $str=str_replace('\\\\','{JsonDB:XG}',$str);
+        if (strpos($str, '\\') !== false) {
+            return false;
+        } else if (strpos($str,'"') !== false){
+            return false;
+        } else{
+            return true;
         }
     }
 }
