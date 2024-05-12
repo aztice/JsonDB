@@ -1,5 +1,5 @@
 <?php
-/* v1.2 */
+/* v1.2 TP */
 function CreateLock($dbname,$list){
     $path = './db/'.$dbname.'/list/'.$list.'.lock';
     touch($path);
@@ -182,8 +182,17 @@ class jsonDB{
                 $zip->addFile($file->getRealPath(), substr($file->getPathname(), strlen($folder_path) + 1));
             }
         }
-    
         $zip->close();
+    }
+    public function DBFixer(){
+        $path='./db/'.$this->dbname.'/';
+        if(file_exists($path.'config.json')){
+            file_put_contents($path.'config.json','{"dbname": "'.$this->dbname.'"}');
+        }
+        if(!is_dir($path.'list/')){
+            mkdir($path.'list/');
+        }
+        echo "[JsonDB] 已成功执行修复";
     }
     public function Import($path){
         $zip = new ZipArchive;
