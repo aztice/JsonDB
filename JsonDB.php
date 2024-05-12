@@ -103,5 +103,32 @@ class jsonDB{
         file_put_contents($filePath, json_encode($data, JSON_PRETTY_PRINT));
         return true;
     }
+    public function Backup(){
+        if(!is_dir('./Backup/')){
+            mkdir('./Backup/');
+        }
+        $zip = new ZipArchive();
+        $zip->open('./Backup/'.$this->dbname.'.jdb', ZipArchive::CREATE | ZipArchive::OVERWRITE);
+    
+        $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator('./db/'.$this->dbname.'/'), RecursiveIteratorIterator::LEAVES_ONLY);
+    
+        foreach ($files as $name => $file) {
+            if (!$file->isDir()) {
+                $zip->addFile($file->getRealPath(), substr($file->getPathname(), strlen($folder_path) + 1));
+            }
+        }
+    
+        // Close the archive
+        $zip->close();
+    }
+    function Import($path){
+        $zip = new ZipArchive;
+        if ($zip->open($path) === TRUE) {
+            $zip->extractTo('./');
+            $zip->close();
+        } else {
+            echo '[JsonDB]错误!无法处理导入文件,请确保.jdb文件路径存在以及文件格式正常!';
+        }
+    }
 }
 ?>
