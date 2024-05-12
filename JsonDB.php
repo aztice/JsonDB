@@ -1,5 +1,5 @@
 <?php
-/* v1.1 TS */
+/* v1.2 */
 function CreateLock($dbname,$list){
     $path = './db/'.$dbname.'/list/'.$list.'.lock';
     touch($path);
@@ -137,6 +137,36 @@ class jsonDB{
         file_put_contents($filePath, json_encode($data, JSON_PRETTY_PRINT));
         DeleteLock($this->dbname,$list);
         return true;
+    }
+    public function DeleteKey($list, $key){
+        if(in_array($list, $this->config['list'])){
+            if(IsLock($this->dbname,$list)){
+                while (IsLock($this->dbname, $list)) {
+                    // 等待锁文件被删除
+                    usleep(100000); // 等待100毫秒，可以根据需要调整等待时间
+                }
+            }
+            CreateLock($this->dbname,$list);
+            $path='./db/'.$this->dbname.'/list/'.$list.'.json';
+            $data = json_decode(file_get_contents($path), true);
+
+            // 检查键是否存在
+            if(isset($data[$key])){
+                unset($data[$key]);
+                // 保存更新后的数据
+                file_put_contents($path, json_encode($data, JSON_PRETTY_PRINT));
+            } else {
+                echo "[JsonDB] 错误!目标键:".$key."不存在于列表:".$list.'!';
+                DeleteLock($this->dbname,$list);
+                return false;
+            }
+            DeleteLock($this->dbname,$list);
+            return true;
+        }
+        else{
+            echo "[JsonDB] 错误!目标的列表不存在:".$list.',请尝试CreateList();';
+            exit();
+        }
     }
     public function Backup(){
         if(!is_dir('./Backup/')){
