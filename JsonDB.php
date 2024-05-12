@@ -1,11 +1,11 @@
 <?php
 /* v1.1 TS */
 function CreateLock($dbname,$list){
-    $path = './db/'.$dbname.'/list/'.$list.'.json';
+    $path = './db/'.$dbname.'/list/'.$list.'.lock';
     touch($path);
 }
 function IsLock($dbname,$list){
-    $path = './db/'.$dbname.'/list/'.$list.'.json';
+    $path = './db/'.$dbname.'/list/'.$list.'.lock';
     if(file_exists($path)){
         return true;
     }
@@ -13,8 +13,8 @@ function IsLock($dbname,$list){
         return false;
     }
 }
-function DeleteLock($dbname,$list,$key){
-    $path = './db/'.$dbname.'/list/'.$list.'.json';
+function DeleteLock($dbname,$list){
+    $path = './db/'.$dbname.'/list/'.$list.'.lock';
     unlink($path);
 }
 class jsonDB{
