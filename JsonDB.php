@@ -1,11 +1,11 @@
 <?php
-/* v1.2 TP */
+/* 1.3 */
 function CreateLock($dbname,$list){
-    $path = './db/'.$dbname.'/list/'.$list.'.lock';
+    $path = $_SERVER['DOCUMENT_ROOT'].'/db/'.$dbname.'/list/'.$list.'.lock';
     touch($path);
 }
 function IsLock($dbname,$list){
-    $path = './db/'.$dbname.'/list/'.$list.'.lock';
+    $path = $_SERVER['DOCUMENT_ROOT'].'/db/'.$dbname.'/list/'.$list.'.lock';
     if(file_exists($path)){
         return true;
     }
@@ -14,58 +14,77 @@ function IsLock($dbname,$list){
     }
 }
 function DeleteLock($dbname,$list){
-    $path = './db/'.$dbname.'/list/'.$list.'.lock';
+    $path = $_SERVER['DOCUMENT_ROOT'].'/db/'.$dbname.'/list/'.$list.'.lock';
     unlink($path);
 }
 class jsonDB{
     public $dbname;
     public $config;
+    public $ReportError = true;
+    public $JsonDBConfig;
+    public function ConfigInit(){ // 此模块为内置模块,开发者勿动
+        $this->JsonDBConfig['version'] = '1.3';
+    }
+    public function SkipError(){
+        $this->ReportError = false;
+    }
     public function CreateTable($name){
-        if(!is_dir('./db/')){
-            mkdir('./db/', 0755, true); // 创建目录，并设置适当的权限
+        if(!is_dir($_SERVER['DOCUMENT_ROOT'].'/db/')){
+            mkdir($_SERVER['DOCUMENT_ROOT'].'/db/', 0755, true); // 创建目录，并设置适当的权限
         }
-        if(is_dir('./db/'.$name.'/')){
-            echo "[JsonDB] 错误!数据表:".$name.'已存在';
+        if(is_dir($_SERVER['DOCUMENT_ROOT'].'/db/'.$name.'/')){
+            if($this->ReportError==true){
+                echo "[JsonDB] 错误!数据表:".$name.'已存在';
+            }
             exit();
         }
         else{
-            mkdir('./db/'.$name.'/');
-            mkdir('./db/'.$name.'/list/');
+            mkdir($_SERVER['DOCUMENT_ROOT'].'/db/'.$name.'/');
+            mkdir($_SERVER['DOCUMENT_ROOT'].'/db/'.$name.'/list/');
             $this->config['dbname']=$name;
-            file_put_contents('./db/'.$name.'/config.json',json_encode($this->config, JSON_PRETTY_PRINT));
+            file_put_contents($_SERVER['DOCUMENT_ROOT'].'/db/'.$name.'/config.json',json_encode($this->config, JSON_PRETTY_PRINT));
+            return true;
         }
     }
     public function Connect($name){
-        if(!is_dir('./db/'.$name.'/')){
-            echo "[JsonDB] 错误!数据表:".$name.'不存在';
+        if(!is_dir($_SERVER['DOCUMENT_ROOT'].'/db/'.$name.'/')){
+            if($this->ReportError==true){
+                echo "[JsonDB] 错误!数据表:".$name.'不存在';
+            }
             exit();
         }
         else{
             $this->dbname = $name;
-            $configPath = './db/'.$name.'/config.json';
+            $configPath = $_SERVER['DOCUMENT_ROOT'].'/db/'.$name.'/config.json';
             if(file_exists($configPath)){
                 $this->config = json_decode(file_get_contents($configPath), true);
             } else {
                 $this->config = array('dbname' => $name, 'list' => array());
                 file_put_contents($configPath, json_encode($this->config, JSON_PRETTY_PRINT));
             }
+            return true;
         }
     }
 
     public function CreateList($name){
         if($this->dbname!=='' && isset($this->dbname)){
             if(isset($this->config['list'][$name])){
-                echo "[JsonDB] 错误!数据列表:".$this->config['list'][$name].'已存在';
-                exit();
+                if($this->ReportError==true){
+                    echo "[JsonDB] 错误!数据列表:".$this->config['list'][$name].'已存在';
+                    exit();
+                }
             }
             else{
                 $this->config['list'][]=$name;
-                file_put_contents('./db/'.$this->dbname.'/list/'.$name.'.json','{}');
-                file_put_contents('./db/'.$this->dbname.'/config.json',json_encode($this->config, JSON_PRETTY_PRINT)); // 更新配置文件
+                file_put_contents($_SERVER['DOCUMENT_ROOT'].'/db/'.$this->dbname.'/list/'.$name.'.json','{}');
+                file_put_contents($_SERVER['DOCUMENT_ROOT'].'/db/'.$this->dbname.'/config.json',json_encode($this->config, JSON_PRETTY_PRINT)); // 更新配置文件
+                return true;
             }
         }
         else{
-            echo "[JsonDB] 错误!您没有连接至数据表:".$this->dbname.',请尝试Connect();';
+            if($this->ReportError==true){
+                echo "[JsonDB] 错误!您没有连接至数据表:".$this->dbname.',请尝试Connect();';
+            }
             exit();
         }
     }
@@ -78,7 +97,7 @@ class jsonDB{
                 }
             }
             CreateLock($this->dbname,$list);
-            $path='./db/'.$this->dbname.'/list/'.$list.'.json';
+            $path=$_SERVER['DOCUMENT_ROOT'].'/db/'.$this->dbname.'/list/'.$list.'.json';
             $data = json_decode(file_get_contents($path), true);
             $data[$key] = $value;
             file_put_contents($path, json_encode($data, JSON_PRETTY_PRINT));
@@ -86,28 +105,32 @@ class jsonDB{
             return true;
         }
         else{
-            echo "[JsonDB] 错误!目标的列表不存在:".$list.',请尝试CreateList();';
+            if($this->ReportError==true){
+                echo "[JsonDB] 错误!目标的列表不存在:".$list.',请尝试CreateList();';
+            }
             exit();
         }
     }
     public function GetKey($list, $key){
         if(in_array($list, $this->config['list'])){
-            $path='./db/'.$this->dbname.'/list/'.$list.'.json';
+            $path=$_SERVER['DOCUMENT_ROOT'].'/db/'.$this->dbname.'/list/'.$list.'.json';
             $data = json_decode(file_get_contents($path), true);
             if(isset($data[$key])) {
                 return $data[$key];
             } else {
-                return null; // 如果键不存在，返回 null
+                return null;
             }
         }
         else{
-            echo "[JsonDB] 错误!目标的列表不存在:".$list.',请尝试CreateList();';
+            if($this->ReportError==true){
+                echo "[JsonDB] 错误!目标的列表不存在:".$list.',请尝试CreateList();';
+            }
             exit();
         }
     }
     public function IsKey($list, $key){
         if(in_array($list, $this->config['list'])){
-            $path='./db/'.$this->dbname.'/list/'.$list.'.json';
+            $path=$_SERVER['DOCUMENT_ROOT'].'/db/'.$this->dbname.'/list/'.$list.'.json';
             $data = json_decode(file_get_contents($path), true);
             return true;
         }
@@ -127,7 +150,7 @@ class jsonDB{
             return false;
         }
         
-        $filePath = './db/'.$this->dbname.'/list/'.$list.'.json';
+        $filePath = $_SERVER['DOCUMENT_ROOT'].'/db/'.$this->dbname.'/list/'.$list.'.json';
         $data = json_decode(file_get_contents($filePath), true);
         
         // 修改键值
@@ -147,7 +170,7 @@ class jsonDB{
                 }
             }
             CreateLock($this->dbname,$list);
-            $path='./db/'.$this->dbname.'/list/'.$list.'.json';
+            $path=$_SERVER['DOCUMENT_ROOT'].'/db/'.$this->dbname.'/list/'.$list.'.json';
             $data = json_decode(file_get_contents($path), true);
 
             // 检查键是否存在
@@ -156,7 +179,9 @@ class jsonDB{
                 // 保存更新后的数据
                 file_put_contents($path, json_encode($data, JSON_PRETTY_PRINT));
             } else {
-                echo "[JsonDB] 错误!目标键:".$key."不存在于列表:".$list.'!';
+                if($this->ReportError==true){
+                    echo "[JsonDB] 错误!目标键:".$key."不存在于列表:".$list.'!';
+                }
                 DeleteLock($this->dbname,$list);
                 return false;
             }
@@ -164,18 +189,20 @@ class jsonDB{
             return true;
         }
         else{
-            echo "[JsonDB] 错误!目标的列表不存在:".$list.',请尝试CreateList();';
+            if($this->ReportError==true){
+                echo "[JsonDB] 错误!目标的列表不存在:".$list.',请尝试CreateList();';
+            }
             exit();
         }
     }
     public function Backup(){
-        if(!is_dir('./Backup/')){
-            mkdir('./Backup/');
+        if(!is_dir($_SERVER['DOCUMENT_ROOT'].'/Backup/')){
+            mkdir($_SERVER['DOCUMENT_ROOT'].'/Backup/');
         }
         $zip = new ZipArchive();
-        $zip->open('./Backup/'.$this->dbname.'.jdb', ZipArchive::CREATE | ZipArchive::OVERWRITE);
+        $zip->open($_SERVER['DOCUMENT_ROOT'].'/Backup/'.$this->dbname.'.jdb', ZipArchive::CREATE | ZipArchive::OVERWRITE);
     
-        $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator('./db/'.$this->dbname.'/'), RecursiveIteratorIterator::LEAVES_ONLY);
+        $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($_SERVER['DOCUMENT_ROOT'].'/db/'.$this->dbname.'/'), RecursiveIteratorIterator::LEAVES_ONLY);
     
         foreach ($files as $name => $file) {
             if (!$file->isDir()) {
@@ -185,7 +212,7 @@ class jsonDB{
         $zip->close();
     }
     public function DBFixer(){
-        $path='./db/'.$this->dbname.'/';
+        $path=$_SERVER['DOCUMENT_ROOT'].'/db/'.$this->dbname.'/';
         if(file_exists($path.'config.json')){
             file_put_contents($path.'config.json','{"dbname": "'.$this->dbname.'"}');
         }
@@ -197,9 +224,10 @@ class jsonDB{
     public function Import($path){
         $zip = new ZipArchive;
         if ($zip->open($path) === TRUE) {
-            $zip->extractTo('./');
+            $zip->extractTo($_SERVER['DOCUMENT_ROOT'].'/');
             $zip->close();
         } else {
+            // 由于安全原因,本步骤无法SkipError,如有需求,可自改
             echo '[JsonDB]错误!无法处理导入文件,请确保.jdb文件路径存在以及文件格式正常!';
         }
     }
@@ -212,6 +240,32 @@ class jsonDB{
         } else{
             return true;
         }
+    }
+    public function DBConfig(){
+        $this->ConfigInit();
+        $ReportErrorStatus = '是';
+        $DBStatus = '已连接至数据库 '.$this->dbname;
+        if($this->ReportError==false) $ReportErrorStatus = '否';
+        if($this->dbname=='') $DBStatus = '未连接';
+        $config = '
+        <h1>JsonDB配置</h1>
+        <p></p>
+        <table>
+          <tr>
+            <td>版本号:</td>
+            <td>'.$this->JsonDBConfig['version'].'</td>
+          </tr>
+          <tr>
+            <td>是否启用错误信息显示:</td>
+            <td>'.$ReportErrorStatus.'</td>
+          </tr>
+          <tr>
+            <td>数据库连接状态:</td>
+            <td>'.$DBStatus.'</td>
+          </tr>
+        </table>
+        ';
+        echo $config;
     }
 }
 ?>
