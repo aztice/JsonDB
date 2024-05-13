@@ -1,5 +1,4 @@
 <?php
-/* 1.3 */
 function CreateLock($dbname,$list){
     $path = $_SERVER['DOCUMENT_ROOT'].'/db/'.$dbname.'/list/'.$list.'.lock';
     touch($path);
@@ -23,7 +22,7 @@ class jsonDB{
     public $ReportError = true;
     public $JsonDBConfig;
     public function ConfigInit(){ // 此模块为内置模块,开发者勿动
-        $this->JsonDBConfig['version'] = '1.3';
+        $this->JsonDBConfig['version'] = '1.3 TS';
     }
     public function SkipError(){
         $this->ReportError = false;
@@ -241,12 +240,41 @@ class jsonDB{
             return true;
         }
     }
+    public function encrypt($str,$key){
+        require_once($_SERVER['DOCUMENT_ROOT'].'/db/addon/LightSK.php');
+        if($this->LightSK==false){
+            echo "[JsonDB] 您没有安装LightSK拓展,无法使用LightSK拓展的功能~";
+            exit();
+        }
+        $LightSKAddon = new LightSK($key);
+        return $LightSKAddon->encrypt($str);
+    }
+    public function decrypt($str,$key){
+        if($this->LightSK==false){
+            echo "[JsonDB] 您没有安装LightSK拓展,无法使用LightSK拓展的功能~";
+            exit();
+        }
+        $LightSKAddon = new LightSK($key);
+        return $LightSKAddon->decrypt($str);
+    }
+    public function EnableLightSK(){
+        if(file_exists($_SERVER['DOCUMENT_ROOT'].'/db/addon/LightSK.php')){
+            $this->LightSK = true;
+            return true;
+        }
+        else{
+            echo "[JsonDB] 错误!请确保LightSK拓展已安装至 /db/addon/ 目录";
+            exit();
+        }
+    }
     public function DBConfig(){
         $this->ConfigInit();
         $ReportErrorStatus = '是';
         $DBStatus = '已连接至数据库 '.$this->dbname;
+        $LightSKStatus = '是';
         if($this->ReportError==false) $ReportErrorStatus = '否';
         if($this->dbname=='') $DBStatus = '未连接';
+        if($this->LightSK==false) $LightSKStatus = '否';
         $config = '
         <h1>JsonDB配置</h1>
         <p></p>
@@ -262,6 +290,10 @@ class jsonDB{
           <tr>
             <td>数据库连接状态:</td>
             <td>'.$DBStatus.'</td>
+          </tr>
+          <tr>
+            <td>是否载入LightSK加密拓展:</td>
+            <td>'.$LightSKStatus.'</td>
           </tr>
         </table>
         ';
