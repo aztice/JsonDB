@@ -67,9 +67,9 @@ class jsonDB{
 
     public function CreateList($name){
         if($this->dbname!=='' && isset($this->dbname)){
-            if(isset($this->config['list'][$name])){
+            if($this->IsList($name)){
                 if($this->ReportError==true){
-                    echo "[JsonDB] 错误!数据列表:".$this->config['list'][$name].'已存在';
+                    echo "[JsonDB] 错误!数据列表 ".$name.'已存在';
                     exit();
                 }
             }
@@ -85,6 +85,14 @@ class jsonDB{
                 echo "[JsonDB] 错误!您没有连接至数据表:".$this->dbname.',请尝试Connect();';
             }
             exit();
+        }
+    }
+    public function IsList($name){
+        if(file_exists($_SERVER['DOCUMENT_ROOT'].'/db/'.$this->dbname.'/list/'.$name.'.json')){
+            return true;
+        }
+        else{
+            return false;
         }
     }
     public function CreateKey($list,$key,$value){
