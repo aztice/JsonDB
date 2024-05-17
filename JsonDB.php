@@ -139,7 +139,10 @@ class jsonDB{
         if(in_array($list, $this->config['list'])){
             $path=$_SERVER['DOCUMENT_ROOT'].'/db/'.$this->dbname.'/list/'.$list.'.json';
             $data = json_decode(file_get_contents($path), true);
-            return true;
+            if(isset($data[$key])==true){
+                return true;
+            }
+            return false;
         }
         else{
             return false;
@@ -153,9 +156,6 @@ class jsonDB{
             }
         }
         CreateLock($this->dbname,$list);
-        if(!$this->IsKey($list, $key)){
-            return false;
-        }
         
         $filePath = $_SERVER['DOCUMENT_ROOT'].'/db/'.$this->dbname.'/list/'.$list.'.json';
         $data = json_decode(file_get_contents($filePath), true);
