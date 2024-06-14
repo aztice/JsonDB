@@ -1,5 +1,4 @@
-# JsonDB
-一个非常简单的数据库，使用json储存数据。<br/>
-官方文档: https://jsondb.light.gs/<br/>
+# LightSK
+一个简单的加密算法，基于aztice的LightSK的java实现<br/>
 开源协议: Light LICENSE<br/>
-JsonDB数据库规范: `/docs/FileStorageSpecification.md`
+
