@@ -33,7 +33,44 @@ class jsonDB{
         }
     }
     public function ConfigInit(){ // 此模块为内置模块,开发者勿动
-        $this->JsonDBConfig['version'] = '1.6';
+        $this->JsonDBConfig['version'] = '1.7';
+    }
+    public function Filter($List, $Range, $str) {
+        if ($this->dbname !== '' && isset($this->dbname)) {
+            if ($this->isList($List)) {
+                // 构建 JSON 文件路径
+                $jsonFile = $_SERVER['DOCUMENT_ROOT'].'/db/'.$this->dbname.'/list/'.$List.'.json';
+                // 读取 JSON 数据
+                $jsonData = json_decode(file_get_contents($jsonFile), true);
+                // 初始化结果数组
+                $result = [];
+                // 根据 Range 参数执行不同的筛选逻辑
+                if ($Range == 'Key' && $str !== '') {
+                    foreach ($jsonData as $key => $value) {
+                        if (strpos($key, $str) !== false) {
+                            $result[] = $key;
+                        }
+                    }
+                }
+                else {
+                    if ($this->ReportError) {
+                        echo "[JsonDB] " . $this->LanguageJson['InvalidFilterRange'];
+                    }
+                    exit();
+                }
+                return !empty($result) ? $result : false;
+            } else {
+                if ($this->ReportError) {
+                    echo "[JsonDB] " . $this->dbname . ',' . $this->LanguageJson['InvalidList'][0] . " $List," . $this->LanguageJson['InvalidList'][1] . ' CreateList();';
+                }
+                exit();
+            }
+        } else {
+            if ($this->ReportError) {
+                echo "[JsonDB] " . $this->LanguageJson['NoConnection'][0] . " " . $this->dbname . ',' . $this->LanguageJson['NoConnection'][1] . ' Connect();';
+            }
+            exit();
+        }
     }
     public function SkipError(){
         $this->ReportError = false;
@@ -57,18 +94,25 @@ class jsonDB{
         }
     }
     public function GetAllList() {
-        $configFile = $_SERVER['DOCUMENT_ROOT'] . '/db/' . $this->dbname . '/config.json';
-        if (!is_file($configFile)) {
-            return false;
-        } else {
-            $data = file_get_contents($configFile);
-            $data = json_decode($data); // Decodes JSON string into stdClass object
-        
-            if (isset($data->list)) {
-                return $data->list; // Access list property using -> notation
+        if($this->dbname!=='' && isset($this->dbname)){
+            $configFile = $_SERVER['DOCUMENT_ROOT'] . '/db/' . $this->dbname . '/config.json';
+            if (!is_file($configFile)) {
+                return false;
             } else {
-                return false; // Handle case where 'list' property is missing
+                $data = file_get_contents($configFile);
+                $data = json_decode($data); // Decodes JSON string into stdClass object
+                if (isset($data->list)) {
+                    return $data->list; // Access list property using -> notation
+                } else {
+                    return false; // Handle case where 'list' property is missing
+                }
             }
+        }
+        else{
+            if($this->ReportError==true){
+                echo "[JsonDB] ".$this->LanguageJson['NoConnection'][0]." ".$this->dbname.','.$this->LanguageJson['NoConnection'][1].' Connect();';
+            }
+            exit();
         }
     }
 
@@ -358,6 +402,10 @@ class jsonDB{
           <tr>
             <td>'.$this->LanguageJson['LightSKStatus'].':</td>
             <td>'.$LightSKStatus.'</td>
+          </tr>
+          <tr>
+            <td>语言</td>
+            <td>'.$this->LanguageJson['Language'].'</td>
           </tr>
           <tr>
             <td>'.$DBList.'</td>
