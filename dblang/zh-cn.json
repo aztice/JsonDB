@@ -24,5 +24,6 @@
     "ReportErrorStatus": "是否启用错误信息显示",
     "DBConnectionStatus": "数据库连接状态",
     "LightSKStatus": "是否载入LightSK加密拓展",
+    "InvalidFilterRange": "错误!Filter事件的范围不属于现支持的范围!",
     "Author": "ice"
 }
