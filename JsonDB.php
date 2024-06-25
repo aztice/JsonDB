@@ -21,8 +21,19 @@ class jsonDB{
     public $config;
     public $ReportError = true;
     public $JsonDBConfig;
+    public $Language = 'zh-cn';
+    public $LanguageJson;
+    public function __construct(){
+        if(!is_file($_SERVER['DOCUMENT_ROOT'].'/dblang/'.$this->Language.'.json')){
+            echo "[JsonDB] ERR_LANGUAGE_FILE!!!";
+            exit();
+        }
+        else{
+            $this->LanguageJson = json_decode(file_get_contents($_SERVER['DOCUMENT_ROOT'].'/dblang/'.$this->Language.'.json'),true);
+        }
+    }
     public function ConfigInit(){ // 此模块为内置模块,开发者勿动
-        $this->JsonDBConfig['version'] = '1.5';
+        $this->JsonDBConfig['version'] = '1.4';
     }
     public function SkipError(){
         $this->ReportError = false;
@@ -33,7 +44,7 @@ class jsonDB{
         }
         if(is_dir($_SERVER['DOCUMENT_ROOT'].'/db/'.$name.'/')){
             if($this->ReportError==true){
-                echo "[JsonDB] 错误!数据表:".$name.'已存在';
+                echo "[JsonDB] ".$this->LanguageJson['ValidDB'][0]." ".$name.$this->LanguageJson['ValidDB'][1];
             }
             exit();
         }
@@ -64,7 +75,7 @@ class jsonDB{
     public function Connect($name){
         if(!is_dir($_SERVER['DOCUMENT_ROOT'].'/db/'.$name.'/')){
             if($this->ReportError==true){
-                echo "[JsonDB] 错误!数据表:".$name.'不存在';
+                echo "[JsonDB] ".$this->LanguageJson['InvalidDB'][0]." ".$name.$this->LanguageJson['InValidDB'][1];
             }
             exit();
         }
@@ -85,7 +96,7 @@ class jsonDB{
         if($this->dbname!=='' && isset($this->dbname)){
             if($this->IsList($name)){
                 if($this->ReportError==true){
-                    echo "[JsonDB] 错误!数据列表 ".$name.'已存在';
+                    echo "[JsonDB] ".$this->LanguageJson['ValidList'][0]." ".$name.$this->LanguageJson['ValidList'][1];
                     exit();
                 }
             }
@@ -98,7 +109,7 @@ class jsonDB{
         }
         else{
             if($this->ReportError==true){
-                echo "[JsonDB] 错误!您没有连接至数据表:".$this->dbname.',请尝试Connect();';
+                echo "[JsonDB] ".$this->LanguageJson['NoConnection'][0]." ".$this->dbname.','.$this->LanguageJson['NoConnection'][1].' Connect();';
             }
             exit();
         }
@@ -129,7 +140,7 @@ class jsonDB{
         }
         else{
             if($this->ReportError==true){
-                echo "[JsonDB] 错误!目标的列表不存在:".$list.',请尝试CreateList();';
+                echo "[JsonDB] ".$this->dbname.','.$this->LanguageJson['InvalidTargetList'][0]." ".$list.','.$this->LanguageJson['InvalidTargetList'][1].' CreateList();';
             }
             exit();
         }
@@ -146,7 +157,7 @@ class jsonDB{
         }
         else{
             if($this->ReportError==true){
-                echo "[JsonDB] 错误!目标的列表不存在:".$list.',请尝试CreateList();';
+                echo "[JsonDB] ".$this->dbname.','.$this->LanguageJson['InvalidTargetList'][0]." ".$list.','.$this->LanguageJson['InvalidTargetList'][1].' CreateList();';
             }
             exit();
         }
@@ -203,7 +214,7 @@ class jsonDB{
                 file_put_contents($path, json_encode($data, JSON_PRETTY_PRINT));
             } else {
                 if($this->ReportError==true){
-                    echo "[JsonDB] 错误!目标键:".$key."不存在于列表:".$list.'!';
+                    echo "[JsonDB] ".$this->LanguageJson['InvalidTargetKey'][0]." ".$key.",".$this->LanguageJson['InvalidTargetKey'][1]." ".$list.'!';
                 }
                 DeleteLock($this->dbname,$list);
                 return false;
@@ -213,7 +224,7 @@ class jsonDB{
         }
         else{
             if($this->ReportError==true){
-                echo "[JsonDB] 错误!目标的列表不存在:".$list.',请尝试CreateList();';
+                echo "[JsonDB] ".$this->dbname.','.$this->LanguageJson['InvalidTargetList'][0]." ".$list.','.$this->LanguageJson['InvalidTargetList'][1].' CreateList();';
             }
             exit();
         }
@@ -242,7 +253,7 @@ class jsonDB{
         if(!is_dir($path.'list/')){
             mkdir($path.'list/');
         }
-        echo "[JsonDB] 已成功执行修复";
+        echo "[JsonDB] ".$this->LanguageJson['SuccessFixDB'];
     }
     public function Import($path){
         $zip = new ZipArchive;
@@ -251,7 +262,7 @@ class jsonDB{
             $zip->close();
         } else {
             // 由于安全原因,本步骤无法SkipError,如有需求,可自改
-            echo '[JsonDB]错误!无法处理导入文件,请确保.jdb文件路径存在以及文件格式正常!';
+            echo '[JsonDB] '.$this->LanguageJson['InvalidImportPath'];
         }
     }
     public function jsonCheck($str){
@@ -267,7 +278,7 @@ class jsonDB{
     public function encrypt($str,$key){
         require_once($_SERVER['DOCUMENT_ROOT'].'/db/addon/LightSK.php');
         if($this->LightSK==false){
-            echo "[JsonDB] 您没有安装LightSK拓展,无法使用LightSK拓展的功能~";
+            echo "[JsonDB] ".$this->LanguageJson['NoLightSK'];
             exit();
         }
         $LightSKAddon = new LightSK($key);
@@ -275,7 +286,7 @@ class jsonDB{
     }
     public function decrypt($str,$key){
         if($this->LightSK==false){
-            echo "[JsonDB] 您没有安装LightSK拓展,无法使用LightSK拓展的功能~";
+            echo "[JsonDB] ".$this->LanguageJson['NoLightSK'];
             exit();
         }
         $LightSKAddon = new LightSK($key);
@@ -287,7 +298,7 @@ class jsonDB{
             return true;
         }
         else{
-            echo "[JsonDB] 错误!请确保LightSK拓展已安装至 /db/addon/ 目录";
+            echo "[JsonDB] ".$this->LanguageJson['EnableLightSKError'];
             exit();
         }
     }
@@ -302,50 +313,50 @@ class jsonDB{
     }
     public function DBConfig(){
         $this->ConfigInit();
-        $ReportErrorStatus = '是';
-        $DBStatus = '已连接至数据库 '.$this->dbname;
-        $LightSKStatus = '是';
-        if($this->ReportError==false) $ReportErrorStatus = '否';
-        if($this->dbname=='') $DBStatus = '未连接';
+        $ReportErrorStatus = $this->LanguageJson['True'];
+        $DBStatus = $this->LanguageJson['ConnectedDB'].' '.$this->dbname;
+        $LightSKStatus = $this->LanguageJson['True'];
+        if($this->ReportError==false) $ReportErrorStatus = $this->LanguageJson['False'];
+        if($this->dbname=='') $DBStatus = $this->LanguageJson['Disconnect'];;
         $DBList = '';
-        if($this->LightSK==false) $LightSKStatus = '否';
+        if($this->LightSK==false) $LightSKStatus = $this->LanguageJson['False'];
         if($this->dbname!==''){
             $array=$this->GetAllList();
             if (empty($array)) {
-                $DBList='空';
+                $DBList=$this->LanguageJson['Null'];
             }
             else{
-                $DBListStatus = '否';
+                $DBListStatus = $this->LanguageJson['False'];
                 if($this->isArrayDuplicates($array)){
                     $DBListStatus = '
-                    <font style="color:red;">是</font><br/>
-                    <font style="font-size:10px;color:grey;">提示: 列表冲突问题可忽略,不会对数据库造成影响~</font>
+                    <font style="color:red;">'.$this->LanguageJson['True'].'</font><br/>
+                    <font style="font-size:10px;color:grey;">'.$this->LanguageJson['ConflictListTip'].'</font>
                     ';
                 }
                 foreach ($array as $value) {
                     $DBList = $DBList.$value.',';
                 }
-                $DBList='数据库列表: '.substr($DBList, 0, -1).'<br/>是否有数据库列表冲突: '.$DBListStatus;
+                $DBList=$this->LanguageJson['DBList'].': '.substr($DBList, 0, -1).'<br/>'.$this->LanguageJson['IsListConflict'].': '.$DBListStatus;
             }
         }
         $config = '
-        <h1>JsonDB配置</h1>
+        <h1>JsonDB '.$this->LanguageJson['Config'].'</h1>
         <p></p>
         <table>
           <tr>
-            <td>版本号:</td>
+            <td>'.$this->LanguageJson['Version'].':</td>
             <td>'.$this->JsonDBConfig['version'].'</td>
           </tr>
           <tr>
-            <td>是否启用错误信息显示:</td>
+            <td>'.$this->LanguageJson['ReportErrorStatus'].':</td>
             <td>'.$ReportErrorStatus.'</td>
           </tr>
           <tr>
-            <td>数据库连接状态:</td>
+            <td>'.$this->LanguageJson['DBConnectionStatus'].':</td>
             <td>'.$DBStatus.'</td>
           </tr>
           <tr>
-            <td>是否载入LightSK加密拓展:</td>
+            <td>'.$this->LanguageJson['LightSKStatus'].':</td>
             <td>'.$LightSKStatus.'</td>
           </tr>
           <tr>
