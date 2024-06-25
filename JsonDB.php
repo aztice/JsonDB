@@ -22,7 +22,7 @@ class jsonDB{
     public $ReportError = true;
     public $JsonDBConfig;
     public function ConfigInit(){ // 此模块为内置模块,开发者勿动
-        $this->JsonDBConfig['version'] = '1.4';
+        $this->JsonDBConfig['version'] = '1.5';
     }
     public function SkipError(){
         $this->ReportError = false;
