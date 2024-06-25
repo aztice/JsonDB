@@ -22,7 +22,7 @@ class jsonDB{
     public $ReportError = true;
     public $JsonDBConfig;
     public function ConfigInit(){ // 此模块为内置模块,开发者勿动
-        $this->JsonDBConfig['version'] = '1.3 TSA';
+        $this->JsonDBConfig['version'] = '1.4';
     }
     public function SkipError(){
         $this->ReportError = false;
@@ -45,6 +45,22 @@ class jsonDB{
             return true;
         }
     }
+    public function GetAllList() {
+        $configFile = $_SERVER['DOCUMENT_ROOT'] . '/db/' . $this->dbname . '/config.json';
+        if (!is_file($configFile)) {
+            return false;
+        } else {
+            $data = file_get_contents($configFile);
+            $data = json_decode($data); // Decodes JSON string into stdClass object
+        
+            if (isset($data->list)) {
+                return $data->list; // Access list property using -> notation
+            } else {
+                return false; // Handle case where 'list' property is missing
+            }
+        }
+    }
+
     public function Connect($name){
         if(!is_dir($_SERVER['DOCUMENT_ROOT'].'/db/'.$name.'/')){
             if($this->ReportError==true){
@@ -139,10 +155,7 @@ class jsonDB{
         if(in_array($list, $this->config['list'])){
             $path=$_SERVER['DOCUMENT_ROOT'].'/db/'.$this->dbname.'/list/'.$list.'.json';
             $data = json_decode(file_get_contents($path), true);
-            if(isset($data[$key])==true){
-                return true;
-            }
-            return false;
+            return true;
         }
         else{
             return false;
@@ -156,6 +169,9 @@ class jsonDB{
             }
         }
         CreateLock($this->dbname,$list);
+        if(!$this->IsKey($list, $key)){
+            return false;
+        }
         
         $filePath = $_SERVER['DOCUMENT_ROOT'].'/db/'.$this->dbname.'/list/'.$list.'.json';
         $data = json_decode(file_get_contents($filePath), true);
@@ -275,6 +291,15 @@ class jsonDB{
             exit();
         }
     }
+    public function isArrayDuplicates($array) {
+        $counts = array_count_values($array);
+        foreach ($counts as $count) {
+            if ($count > 1) {
+                return true;
+            }
+        }
+        return false;
+    }
     public function DBConfig(){
         $this->ConfigInit();
         $ReportErrorStatus = '是';
@@ -282,7 +307,27 @@ class jsonDB{
         $LightSKStatus = '是';
         if($this->ReportError==false) $ReportErrorStatus = '否';
         if($this->dbname=='') $DBStatus = '未连接';
+        $DBList = '';
         if($this->LightSK==false) $LightSKStatus = '否';
+        if($this->dbname!==''){
+            $array=$this->GetAllList();
+            if (empty($array)) {
+                $DBList='空';
+            }
+            else{
+                $DBListStatus = '否';
+                if($this->isArrayDuplicates($array)){
+                    $DBListStatus = '
+                    <font style="color:red;">是</font><br/>
+                    <font style="font-size:10px;color:grey;">提示: 列表冲突问题可忽略,不会对数据库造成影响~</font>
+                    ';
+                }
+                foreach ($array as $value) {
+                    $DBList = $DBList.$value.',';
+                }
+                $DBList='数据库列表: '.substr($DBList, 0, -1).'<br/>是否有数据库列表冲突: '.$DBListStatus;
+            }
+        }
         $config = '
         <h1>JsonDB配置</h1>
         <p></p>
@@ -302,6 +347,9 @@ class jsonDB{
           <tr>
             <td>是否载入LightSK加密拓展:</td>
             <td>'.$LightSKStatus.'</td>
+          </tr>
+          <tr>
+            <td>'.$DBList.'</td>
           </tr>
         </table>
         ';
