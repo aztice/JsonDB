@@ -16,6 +16,73 @@ function DeleteLock($dbname,$list){
     $path = $_SERVER['DOCUMENT_ROOT'].'/db/'.$dbname.'/list/'.$list.'.lock';
     unlink($path);
 }
+function WebAPIAuth(){
+    if (!isset($_GET["dbname"])) {
+        $json = [
+            "status" => "error",
+            "code" => 400,
+            "message" => "Missing dbname parameter",
+        ];
+        http_response_code(400);
+        echo json_encode($json);
+        exit();
+    }
+    $dbname = $_GET["dbname"];
+    if (empty($dbname) || !preg_match('/^[a-zA-Z0-9_-]+$/', $dbname)) {
+        $json = [
+            "status" => "error",
+            "code" => 400,
+            "message" => "Invalid dbname parameter",
+        ];
+        http_response_code(400);
+        echo json_encode($json);
+        exit();
+    }
+    $db_directory = $_SERVER["DOCUMENT_ROOT"] . "/db/" . $dbname . "/";
+    if (!is_dir($db_directory)) {
+        $json = [
+            "status" => "error",
+            "code" => 404,
+            "message" => "Database directory not found",
+        ];
+        http_response_code(404);
+        echo json_encode($json);
+        exit;
+    } else {
+        require_once $_SERVER["DOCUMENT_ROOT"] . "/JsonDB.php";
+        $json = [
+            "status" => "error",
+            "code" => 401,
+            "message" => "Authentication failure",
+        ];
+        if (isset($_GET["ApiKey"])) {
+            $json = json_decode(file_get_contents($_SERVER["DOCUMENT_ROOT"]."/db/".$dbname."/config.json"),true);
+            $res = false;
+            if ($json["WebAPI"] == false) {
+                $json = [
+                    "status" => "error",
+                    "code" => 403,
+                    "message" => "WebAPI is disabled",
+                ];
+                http_response_code(403);
+                echo json_encode($json);
+                exit;
+            } elseif ($json["ApiKey"] !== $_GET["ApiKey"]) {
+                $json = [
+                    "status" => "error",
+                    "code" => 403,
+                    "message" => "Invalid APIKey",
+                ];
+                http_response_code(401);
+                echo json_encode($json);
+                exit;
+            }
+        } else {
+            echo json_encode($json);
+            exit();
+        }
+    }
+}
 class jsonDB{
     public $dbname;
     public $config;
