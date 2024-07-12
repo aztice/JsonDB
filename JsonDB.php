@@ -100,7 +100,7 @@ class jsonDB{
         }
     }
     public function ConfigInit(){ // 此模块为内置模块,开发者勿动
-        $this->JsonDBConfig['version'] = '1.7';
+        $this->JsonDBConfig['version'] = '1.8 Beta';
     }
     public function Filter($List, $Range, $str) {
         if ($this->dbname !== '' && isset($this->dbname)) {
