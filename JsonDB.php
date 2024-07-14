@@ -43,7 +43,7 @@ function WebAPIAuth(){
         $json = [
             "status" => "error",
             "code" => 404,
-            "message" => "Database directory not found",
+            "message" => "Database not found",
         ];
         http_response_code(404);
         echo json_encode($json);
@@ -90,6 +90,7 @@ class jsonDB{
     public $JsonDBConfig;
     public $Language = 'zh-cn';
     public $LanguageJson;
+    public $WebAPI = false;
     public function __construct(){
         if(!is_file($_SERVER['DOCUMENT_ROOT'].'/dblang/'.$this->Language.'.json')){
             echo "[JsonDB] ERR_LANGUAGE_FILE!!!";
@@ -99,8 +100,11 @@ class jsonDB{
             $this->LanguageJson = json_decode(file_get_contents($_SERVER['DOCUMENT_ROOT'].'/dblang/'.$this->Language.'.json'),true);
         }
     }
+    public function WebAPI(){
+        $this->WebAPI = true;
+    }
     public function ConfigInit(){ // 此模块为内置模块,开发者勿动
-        $this->JsonDBConfig['version'] = '1.8 Beta';
+        $this->JsonDBConfig['version'] = '1.8';
     }
     public function Filter($List, $Range, $str) {
         if ($this->dbname !== '' && isset($this->dbname)) {
@@ -267,7 +271,16 @@ class jsonDB{
             }
         }
         else{
-            if($this->ReportError==true){
+            if($this->WebAPI==true){
+                $json = [
+                    "status" => "error",
+                    "code" => 404,
+                    "message" => "Invalid list in Database",
+                ];
+                http_response_code(404);
+                echo json_encode($json);
+            }
+            else if($this->ReportError==true){
                 echo "[JsonDB] ".$this->dbname.','.$this->LanguageJson['InvalidTargetList'][0]." ".$list.','.$this->LanguageJson['InvalidTargetList'][1].' CreateList();';
             }
             exit();
@@ -284,27 +297,44 @@ class jsonDB{
         }
     }
     public function EditKey($list, $key, $value){
-        if(IsLock($this->dbname,$list)){
-            while (IsLock($this->dbname, $list)) {
-                // 等待锁文件被删除
-                usleep(100000); // 等待100毫秒，可以根据需要调整等待时间
+        if(in_array($list, $this->config['list'])){
+            if(IsLock($this->dbname,$list)){
+                while (IsLock($this->dbname, $list)) {
+                    // 等待锁文件被删除
+                    usleep(100000); // 等待100毫秒，可以根据需要调整等待时间
+                }
             }
-        }
-        CreateLock($this->dbname,$list);
-        if(!$this->IsKey($list, $key)){
-            return false;
-        }
+            CreateLock($this->dbname,$list);
+            if(!$this->IsKey($list, $key)){
+                return false;
+            }
         
-        $filePath = $_SERVER['DOCUMENT_ROOT'].'/db/'.$this->dbname.'/list/'.$list.'.json';
-        $data = json_decode(file_get_contents($filePath), true);
+            $filePath = $_SERVER['DOCUMENT_ROOT'].'/db/'.$this->dbname.'/list/'.$list.'.json';
+            $data = json_decode(file_get_contents($filePath), true);
         
-        // 修改键值
-        $data[$key] = $value;
+            // 修改键值
+            $data[$key] = $value;
     
-        // 写回到文件
-        file_put_contents($filePath, json_encode($data, JSON_PRETTY_PRINT));
-        DeleteLock($this->dbname,$list);
-        return true;
+            // 写回到文件
+            file_put_contents($filePath, json_encode($data, JSON_PRETTY_PRINT));
+            DeleteLock($this->dbname,$list);
+            return true;
+        }
+        else{
+            if($this->WebAPI==true){
+                $json = [
+                    "status" => "error",
+                    "code" => 404,
+                    "message" => "Invalid list in Database",
+                ];
+                http_response_code(404);
+                echo json_encode($json);
+            }
+            else if($this->ReportError==true){
+                echo "[JsonDB] ".$this->dbname.','.$this->LanguageJson['InvalidTargetList'][0]." ".$list.','.$this->LanguageJson['InvalidTargetList'][1].' CreateList();';
+            }
+            exit();
+        }
     }
     public function DeleteKey($list, $key){
         if(in_array($list, $this->config['list'])){
