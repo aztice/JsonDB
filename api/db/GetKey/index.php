@@ -11,6 +11,7 @@ http_response_code(200);
 $list = $_GET['list'];
 $jsonDB = new jsonDB();
 $jsonDB->Connect($_GET['dbname']);
+$jsonDB->WebAPI();
 $value=$jsonDB->GetKey($list, $_GET['key']);
 if(isset($value)){
     $json = [
