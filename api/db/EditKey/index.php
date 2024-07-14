@@ -12,7 +12,7 @@ $list = $_GET['list'];
 $jsonDB = new jsonDB();
 $jsonDB->Connect($_GET['dbname']);
 $jsonDB->WebAPI();
-if($_GET['format']!=='json' || $_GET['format']!=='array' || $_GET['format']!=='str'){
+if($_GET['format']!=='json' || $_GET['format']!=='array' || $_GET['format']!=='str' || $_GET['format']=='num'){
     if (!isset($_GET['key']) || $_GET['key'] == '') {
         $json = [
             "status" => "error",
@@ -49,6 +49,19 @@ if($_GET['format']!=='json' || $_GET['format']!=='array' || $_GET['format']!=='s
             echo json_encode($json);
             exit;
         }
+    }
+    else if($_GET['format']=='num'){
+        if(!is_numeric($_GET['value'])){
+            $json = [
+                "status" => "error",
+                "code" => 400,
+                "message" => "Invalid format,please check your Number format",
+            ];
+            http_response_code(400);
+            echo json_encode($json);
+            exit;
+        }
+        $data = intval($_GET['value']);
     }
     else{
         $data = $_GET['value'];
