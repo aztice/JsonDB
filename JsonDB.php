@@ -91,6 +91,8 @@ class jsonDB{
     public $Language = 'zh-cn';
     public $LanguageJson;
     public $WebAPI = false;
+    public $listCache = false;
+    public $timeUsed;
     public function __construct(){
         if(!is_file($_SERVER['DOCUMENT_ROOT'].'/dblang/'.$this->Language.'.json')){
             echo "[JsonDB] ERR_LANGUAGE_FILE!!!";
@@ -99,12 +101,16 @@ class jsonDB{
         else{
             $this->LanguageJson = json_decode(file_get_contents($_SERVER['DOCUMENT_ROOT'].'/dblang/'.$this->Language.'.json'),true);
         }
+        $this->timeUsed = microtime(true);
+    }
+    public function GetTimeUsed(){
+        return microtime(true)-$this->timeUsed;
     }
     public function WebAPI(){
         $this->WebAPI = true;
     }
     public function ConfigInit(){ // 此模块为内置模块,开发者勿动
-        $this->JsonDBConfig['version'] = '1.8';
+        $this->JsonDBConfig['version'] = '1.9';
     }
     public function Filter($List, $Range, $str) {
         if ($this->dbname !== '' && isset($this->dbname)) {
@@ -237,33 +243,16 @@ class jsonDB{
             return false;
         }
     }
-    public function CreateKey($list,$key,$value){
-        if(in_array($list, $this->config['list'])){
-            if(IsLock($this->dbname,$list)){
-                while (IsLock($this->dbname, $list)) {
-                    // 等待锁文件被删除
-                    usleep(100000); // 等待100毫秒，可以根据需要调整等待时间
-                }
-            }
-            CreateLock($this->dbname,$list);
-            $path=$_SERVER['DOCUMENT_ROOT'].'/db/'.$this->dbname.'/list/'.$list.'.json';
-            $data = json_decode(file_get_contents($path), true);
-            $data[$key] = $value;
-            file_put_contents($path, json_encode($data, JSON_PRETTY_PRINT));
-            DeleteLock($this->dbname,$list);
-            return true;
-        }
-        else{
-            if($this->ReportError==true){
-                echo "[JsonDB] ".$this->dbname.','.$this->LanguageJson['InvalidTargetList'][0]." ".$list.','.$this->LanguageJson['InvalidTargetList'][1].' CreateList();';
-            }
-            exit();
-        }
-    }
     public function GetKey($list, $key){
         if(in_array($list, $this->config['list'])){
+            if($this->listCache!==false){
+                if(isset($this->listCache[$list])){
+                    return $this->listCache[$list][$key];
+                }
+            }
             $path=$_SERVER['DOCUMENT_ROOT'].'/db/'.$this->dbname.'/list/'.$list.'.json';
             $data = json_decode(file_get_contents($path), true);
+            $this->listCache[$list]=$data;
             if(isset($data[$key])) {
                 return $data[$key];
             } else {
@@ -287,14 +276,15 @@ class jsonDB{
         }
     }
     public function IsKey($list, $key){
-        if(in_array($list, $this->config['list'])){
-            $path=$_SERVER['DOCUMENT_ROOT'].'/db/'.$this->dbname.'/list/'.$list.'.json';
-            $data = json_decode(file_get_contents($path), true);
-            return true;
+        if($this->listCache!==false){
+            if(isset($this->listCache[$list])){
+                return isset($this->listCache[$list][$key]);
+            }
         }
-        else{
-            return false;
-        }
+        $path=$_SERVER['DOCUMENT_ROOT'].'/db/'.$this->dbname.'/list/'.$list.'.json';
+        $data = json_decode(file_get_contents($path), true);
+        $this->listCache[$list]=$data;
+        return isset($data[$key]);
     }
     public function EditKey($list, $key, $value){
         if(in_array($list, $this->config['list'])){
@@ -305,14 +295,11 @@ class jsonDB{
                 }
             }
             CreateLock($this->dbname,$list);
-            if(!$this->IsKey($list, $key)){
-                return false;
-            }
         
             $filePath = $_SERVER['DOCUMENT_ROOT'].'/db/'.$this->dbname.'/list/'.$list.'.json';
             $data = json_decode(file_get_contents($filePath), true);
         
-            // 修改键值
+            $this->listCache[$list][$key]=$value;
             $data[$key] = $value;
     
             // 写回到文件
@@ -341,17 +328,20 @@ class jsonDB{
             if(IsLock($this->dbname,$list)){
                 while (IsLock($this->dbname, $list)) {
                     // 等待锁文件被删除
-                    usleep(100000); // 等待100毫秒，可以根据需要调整等待时间
+                    usleep(100000);
                 }
             }
             CreateLock($this->dbname,$list);
             $path=$_SERVER['DOCUMENT_ROOT'].'/db/'.$this->dbname.'/list/'.$list.'.json';
-            $data = json_decode(file_get_contents($path), true);
-
-            // 检查键是否存在
+            if($this->listCache!==false){
+                $data = $this->listCache[$list];
+            }
+            else{
+                $data = json_decode(file_get_contents($path), true);
+            }
             if(isset($data[$key])){
                 unset($data[$key]);
-                // 保存更新后的数据
+                if($this->listCache!==false) unset($this->listCache[$list][$key]);
                 file_put_contents($path, json_encode($data, JSON_PRETTY_PRINT));
             } else {
                 if($this->ReportError==true){
