@@ -1,79 +1,58 @@
 <?php
 header('Content-Type: application/json; charset=utf-8');
 require_once($_SERVER['DOCUMENT_ROOT'] . '/JsonDB.php');
+
 WebAPIAuth();
 $json = [
     "status" => "error",
     "code" => 400,
-    "message" => "Invalid format,Supported format are json,array,str",
+    "message" => "Invalid format. Supported formats are json, array, str, num",
 ];
 http_response_code(400);
-$list = $_GET['list'];
+$list = isset($_REQUEST['list']) ? $_REQUEST['list'] : null;
 $jsonDB = new jsonDB();
-$jsonDB->Connect($_GET['dbname']);
+$dbname = isset($_REQUEST['dbname']) ? $_REQUEST['dbname'] : null;
+$jsonDB->Connect($dbname);
 $jsonDB->WebAPI();
-if($_GET['format']!=='json' || $_GET['format']!=='array' || $_GET['format']!=='str' || $_GET['format']=='num'){
-    if (!isset($_GET['key']) || $_GET['key'] == '') {
-        $json = [
-            "status" => "error",
-            "code" => 400,
-            "message" => "Invalid key",
-        ];
-        http_response_code(400);
-        echo json_encode($json);
-        exit;
-    }
-    if($_GET['format']=='json'){
-        $data=json_decode($_GET['value'],true);
-        if ($data === null && json_last_error() !== JSON_ERROR_NONE) {
-            $json = [
-                "status" => "error",
-                "code" => 400,
-                "message" => "Invalid format,please check your Json format",
-            ];
-            http_response_code(400);
-            echo json_encode($json);
-            exit;
-        }
-        
-    }
-    else if($_GET['format']=='array'){
-        $data=json_decode($_GET['value']);
-        if (!is_array($data) || json_last_error() !== JSON_ERROR_NONE) {
-            $json = [
-                "status" => "error",
-                "code" => 400,
-                "message" => "Invalid format,please check your Array format",
-            ];
-            http_response_code(400);
-            echo json_encode($json);
-            exit;
-        }
-    }
-    else if($_GET['format']=='num'){
-        if(!is_numeric($_GET['value'])){
-            $json = [
-                "status" => "error",
-                "code" => 400,
-                "message" => "Invalid format,please check your Number format",
-            ];
-            http_response_code(400);
-            echo json_encode($json);
-            exit;
-        }
-        $data = intval($_GET['value']);
-    }
-    else{
-        $data = $_GET['value'];
-    }
-    $jsonDB->EditKey($_GET['list'],$_GET['key'],$data);
-    $json = [
-        "status" => "success",
-        "code" => 200,
-        "message" => null,
-    ];
-    http_response_code(200);
-    echo json_encode($json);
-    exit;
+$format = isset($_REQUEST['format']) ? $_REQUEST['format'] : null;
+if ($format !== 'json' && $format !== 'array' && $format !== 'str' && $format !== 'num') {
+    sendErrorResponse(400, "Invalid format specified");
 }
+$key = isset($_REQUEST['key']) ? $_REQUEST['key'] : null;
+if (!$key) {
+    sendErrorResponse(400, "Invalid key");
+}
+$value = isset($_REQUEST['value']) ? $_REQUEST['value'] : null;
+switch ($format) {
+    case 'json':
+        $data = json_decode($value, true);
+        if ($data === null && json_last_error() !== JSON_ERROR_NONE) {
+            sendErrorResponse(400, "Invalid format. Please check your JSON format");
+        }
+        break;
+    case 'array':
+        $data = json_decode($value);
+        if (!is_array($data) || json_last_error() !== JSON_ERROR_NONE) {
+            sendErrorResponse(400, "Invalid format. Please check your Array format");
+        }
+        break;
+    case 'num':
+        if (!is_numeric($value)) {
+            sendErrorResponse(400, "Invalid format. Please check your Number format");
+        }
+        $data = intval($value);
+        break;
+    default:
+        $data = $value;
+        break;
+}
+$jsonDB->edit($list, $key, $data);
+$json = [
+    "status" => "success",
+    "code" => 200,
+    "message" => null,
+];
+http_response_code(200);
 echo json_encode($json);
+exit;
+?>
