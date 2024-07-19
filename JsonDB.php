@@ -16,72 +16,39 @@ function DeleteLock($dbname,$list){
     $path = $_SERVER['DOCUMENT_ROOT'].'/db/'.$dbname.'/list/'.$list.'.lock';
     unlink($path);
 }
-function WebAPIAuth(){
-    if (!isset($_GET["dbname"])) {
-        $json = [
-            "status" => "error",
-            "code" => 400,
-            "message" => "Missing dbname parameter",
-        ];
-        http_response_code(400);
-        echo json_encode($json);
-        exit();
+function WebAPIAuth() {
+    if (!isset($_REQUEST["dbname"])) {
+        sendErrorResponse(400, "Missing dbname parameter");
     }
-    $dbname = $_GET["dbname"];
+    $dbname = $_REQUEST["dbname"];
     if (empty($dbname) || !preg_match('/^[a-zA-Z0-9_-]+$/', $dbname)) {
-        $json = [
-            "status" => "error",
-            "code" => 400,
-            "message" => "Invalid dbname parameter",
-        ];
-        http_response_code(400);
-        echo json_encode($json);
-        exit();
+        sendErrorResponse(400, "Invalid dbname parameter");
     }
     $db_directory = $_SERVER["DOCUMENT_ROOT"] . "/db/" . $dbname . "/";
     if (!is_dir($db_directory)) {
-        $json = [
-            "status" => "error",
-            "code" => 404,
-            "message" => "Database not found",
-        ];
-        http_response_code(404);
-        echo json_encode($json);
-        exit;
-    } else {
-        require_once $_SERVER["DOCUMENT_ROOT"] . "/JsonDB.php";
-        $json = [
-            "status" => "error",
-            "code" => 401,
-            "message" => "Authentication failure",
-        ];
-        if (isset($_GET["ApiKey"])) {
-            $json = json_decode(file_get_contents($_SERVER["DOCUMENT_ROOT"]."/db/".$dbname."/config.json"),true);
-            $res = false;
-            if ($json["WebAPI"] == false) {
-                $json = [
-                    "status" => "error",
-                    "code" => 403,
-                    "message" => "WebAPI is disabled",
-                ];
-                http_response_code(403);
-                echo json_encode($json);
-                exit;
-            } elseif ($json["ApiKey"] !== $_GET["ApiKey"]) {
-                $json = [
-                    "status" => "error",
-                    "code" => 403,
-                    "message" => "Invalid APIKey",
-                ];
-                http_response_code(401);
-                echo json_encode($json);
-                exit;
-            }
-        } else {
-            echo json_encode($json);
-            exit();
-        }
+        sendErrorResponse(404, "Database not found");
     }
+    if (isset($_REQUEST["ApiKey"])) {
+        $json = json_decode(file_get_contents($db_directory . "config.json"), true);
+        if ($json["WebAPI"] === false) {
+            sendErrorResponse(403, "WebAPI is disabled");
+        } elseif ($json["ApiKey"] !== $_REQUEST["ApiKey"]) {
+            sendErrorResponse(401, "Invalid APIKey");
+        }
+    } else {
+        sendErrorResponse(401, "Authentication failure");
+    }
+}
+
+function sendErrorResponse($code, $message) {
+    $json = [
+        "status" => "error",
+        "code" => $code,
+        "message" => $message,
+    ];
+    http_response_code($code);
+    echo json_encode($json);
+    exit;
 }
 class jsonDB{
     public $dbname;
@@ -110,18 +77,14 @@ class jsonDB{
         $this->WebAPI = true;
     }
     public function ConfigInit(){ // 此模块为内置模块,开发者勿动
-        $this->JsonDBConfig['version'] = '1.9';
+        $this->JsonDBConfig['version'] = '2.0';
     }
     public function Filter($List, $Range, $str) {
         if ($this->dbname !== '' && isset($this->dbname)) {
             if ($this->isList($List)) {
-                // 构建 JSON 文件路径
                 $jsonFile = $_SERVER['DOCUMENT_ROOT'].'/db/'.$this->dbname.'/list/'.$List.'.json';
-                // 读取 JSON 数据
                 $jsonData = json_decode(file_get_contents($jsonFile), true);
-                // 初始化结果数组
                 $result = [];
-                // 根据 Range 参数执行不同的筛选逻辑
                 if ($Range == 'Key' && $str !== '') {
                     foreach ($jsonData as $key => $value) {
                         if (strpos($key, $str) !== false) {
@@ -152,7 +115,7 @@ class jsonDB{
     public function SkipError(){
         $this->ReportError = false;
     }
-    public function CreateTable($name){
+    public function createdb($name){
         if(!is_dir($_SERVER['DOCUMENT_ROOT'].'/db/')){
             mkdir($_SERVER['DOCUMENT_ROOT'].'/db/', 0755, true); // 创建目录，并设置适当的权限
         }
@@ -170,18 +133,18 @@ class jsonDB{
             return true;
         }
     }
-    public function GetAllList() {
+    public function GetAllLists() {
         if($this->dbname!=='' && isset($this->dbname)){
             $configFile = $_SERVER['DOCUMENT_ROOT'] . '/db/' . $this->dbname . '/config.json';
             if (!is_file($configFile)) {
                 return false;
             } else {
                 $data = file_get_contents($configFile);
-                $data = json_decode($data); // Decodes JSON string into stdClass object
+                $data = json_decode($data);
                 if (isset($data->list)) {
-                    return $data->list; // Access list property using -> notation
+                    return $data->list;
                 } else {
-                    return false; // Handle case where 'list' property is missing
+                    return false;
                 }
             }
         }
@@ -243,7 +206,7 @@ class jsonDB{
             return false;
         }
     }
-    public function GetKey($list, $key){
+    public function get($list, $key){
         if(in_array($list, $this->config['list'])){
             if($this->listCache!==false){
                 if(isset($this->listCache[$list])){
@@ -286,7 +249,7 @@ class jsonDB{
         $this->listCache[$list]=$data;
         return isset($data[$key]);
     }
-    public function EditKey($list, $key, $value){
+    public function edit($list, $key, $value){
         if(in_array($list, $this->config['list'])){
             if(IsLock($this->dbname,$list)){
                 while (IsLock($this->dbname, $list)) {
