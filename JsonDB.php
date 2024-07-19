@@ -286,7 +286,7 @@ class jsonDB{
             exit();
         }
     }
-    public function DeleteKey($list, $key){
+    public function remove($list, $key){
         if(in_array($list, $this->config['list'])){
             if(IsLock($this->dbname,$list)){
                 while (IsLock($this->dbname, $list)) {
