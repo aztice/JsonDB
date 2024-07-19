@@ -339,7 +339,7 @@ class jsonDB{
         }
         $zip->close();
     }
-    public function DBFixer(){
+    public function fix(){
         $path=$_SERVER['DOCUMENT_ROOT'].'/db/'.$this->dbname.'/';
         if(file_exists($path.'config.json')){
             file_put_contents($path.'config.json','{"dbname": "'.$this->dbname.'"}');
