@@ -8,12 +8,12 @@ $json = [
     "message" => null,
 ];
 http_response_code(200);
-$list = $_GET['list'];
+$list = $_REQUEST['list'] ?? null;
 $jsonDB = new jsonDB();
-$jsonDB->Connect($_GET['dbname']);
+$jsonDB->Connect($_REQUEST['dbname']);
 $jsonDB->WebAPI();
-$value=$jsonDB->GetKey($list, $_GET['key']);
-if(isset($value)){
+$value = $jsonDB->get($list, $_REQUEST['key']);
+if (isset($value)) {
     $json = [
         "status" => "success",
         "code" => 200,
@@ -21,3 +21,4 @@ if(isset($value)){
     ];
 }
 echo json_encode($json);
+?>
