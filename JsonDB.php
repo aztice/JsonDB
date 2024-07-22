@@ -1,55 +1,5 @@
 <?php
-function CreateLock($dbname,$list){
-    $path = $_SERVER['DOCUMENT_ROOT'].'/db/'.$dbname.'/list/'.$list.'.lock';
-    touch($path);
-}
-function IsLock($dbname,$list){
-    $path = $_SERVER['DOCUMENT_ROOT'].'/db/'.$dbname.'/list/'.$list.'.lock';
-    if(file_exists($path)){
-        return true;
-    }
-    else{
-        return false;
-    }
-}
-function DeleteLock($dbname,$list){
-    $path = $_SERVER['DOCUMENT_ROOT'].'/db/'.$dbname.'/list/'.$list.'.lock';
-    unlink($path);
-}
-function WebAPIAuth() {
-    if (!isset($_REQUEST["dbname"])) {
-        sendErrorResponse(400, "Missing dbname parameter");
-    }
-    $dbname = $_REQUEST["dbname"];
-    if (empty($dbname) || !preg_match('/^[a-zA-Z0-9_-]+$/', $dbname)) {
-        sendErrorResponse(400, "Invalid dbname parameter");
-    }
-    $db_directory = $_SERVER["DOCUMENT_ROOT"] . "/db/" . $dbname . "/";
-    if (!is_dir($db_directory)) {
-        sendErrorResponse(404, "Database not found");
-    }
-    if (isset($_REQUEST["ApiKey"])) {
-        $json = json_decode(file_get_contents($db_directory . "config.json"), true);
-        if ($json["WebAPI"] === false) {
-            sendErrorResponse(403, "WebAPI is disabled");
-        } elseif ($json["ApiKey"] !== $_REQUEST["ApiKey"]) {
-            sendErrorResponse(401, "Invalid APIKey");
-        }
-    } else {
-        sendErrorResponse(401, "Authentication failure");
-    }
-}
-
-function sendErrorResponse($code, $message) {
-    $json = [
-        "status" => "error",
-        "code" => $code,
-        "message" => $message,
-    ];
-    http_response_code($code);
-    echo json_encode($json);
-    exit;
-}
+include $_SERVER['DOCUMENT_ROOT'].'/lib/secure.php';
 class jsonDB{
     public $dbname;
     public $config;
@@ -324,20 +274,8 @@ class jsonDB{
         }
     }
     public function Backup(){
-        if(!is_dir($_SERVER['DOCUMENT_ROOT'].'/Backup/')){
-            mkdir($_SERVER['DOCUMENT_ROOT'].'/Backup/');
-        }
-        $zip = new ZipArchive();
-        $zip->open($_SERVER['DOCUMENT_ROOT'].'/Backup/'.$this->dbname.'.jdb', ZipArchive::CREATE | ZipArchive::OVERWRITE);
-    
-        $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($_SERVER['DOCUMENT_ROOT'].'/db/'.$this->dbname.'/'), RecursiveIteratorIterator::LEAVES_ONLY);
-    
-        foreach ($files as $name => $file) {
-            if (!$file->isDir()) {
-                $zip->addFile($file->getRealPath(), substr($file->getPathname(), strlen($folder_path) + 1));
-            }
-        }
-        $zip->close();
+        require_once($_SERVER['DOCUMENT_ROOT'].'/lib/backup.php');
+        backup($this->dbname);
     }
     public function fix(){
         $path=$_SERVER['DOCUMENT_ROOT'].'/db/'.$this->dbname.'/';
@@ -357,43 +295,6 @@ class jsonDB{
         } else {
             // 由于安全原因,本步骤无法SkipError,如有需求,可自改
             echo '[JsonDB] '.$this->LanguageJson['InvalidImportPath'];
-        }
-    }
-    public function jsonCheck($str){
-        $str=str_replace('\\\\','{JsonDB:XG}',$str);
-        if (strpos($str, '\\') !== false) {
-            return false;
-        } else if (strpos($str,'"') !== false){
-            return false;
-        } else{
-            return true;
-        }
-    }
-    public function encrypt($str,$key){
-        require_once($_SERVER['DOCUMENT_ROOT'].'/db/addon/LightSK.php');
-        if($this->LightSK==false){
-            echo "[JsonDB] ".$this->LanguageJson['NoLightSK'];
-            exit();
-        }
-        $LightSKAddon = new LightSK($key);
-        return $LightSKAddon->encrypt($str);
-    }
-    public function decrypt($str,$key){
-        if($this->LightSK==false){
-            echo "[JsonDB] ".$this->LanguageJson['NoLightSK'];
-            exit();
-        }
-        $LightSKAddon = new LightSK($key);
-        return $LightSKAddon->decrypt($str);
-    }
-    public function EnableLightSK(){
-        if(file_exists($_SERVER['DOCUMENT_ROOT'].'/db/addon/LightSK.php')){
-            $this->LightSK = true;
-            return true;
-        }
-        else{
-            echo "[JsonDB] ".$this->LanguageJson['EnableLightSKError'];
-            exit();
         }
     }
     public function isArrayDuplicates($array) {
@@ -454,7 +355,7 @@ class jsonDB{
             <td>'.$LightSKStatus.'</td>
           </tr>
           <tr>
-            <td>语言</td>
+            <td>'.$this->LanguageJson['Lang'].'</td>
             <td>'.$this->LanguageJson['Language'].'</td>
           </tr>
           <tr>
