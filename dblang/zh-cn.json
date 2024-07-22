@@ -9,8 +9,6 @@
     "InvalidTargetKey": ["错误!目标键:","不存在于列表:"],
     "SuccessFixDB": "已成功执行修复!",
     "InvalidImportPath": "错误!无法处理导入文件,请确保.jdb文件路径存在以及文件格式正常!",
-    "NoLightSK": "您没有安装LightSK拓展,无法使用LightSK拓展的功能~",
-    "EnableLightSKError": "错误!请确保LightSK拓展已安装至 /db/addon/ 目录",
     "True": "是",
     "False": "否",
     "Null": "空",
@@ -23,7 +21,6 @@
     "Version": "版本",
     "ReportErrorStatus": "是否启用错误信息显示",
     "DBConnectionStatus": "数据库连接状态",
-    "LightSKStatus": "是否载入LightSK加密拓展",
     "InvalidFilterRange": "错误!Filter事件的范围不属于现支持的范围!",
     "Author": "ice"
 }
