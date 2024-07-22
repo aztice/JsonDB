@@ -415,7 +415,7 @@ class jsonDB{
         $DBList = '';
         if($this->LightSK==false) $LightSKStatus = $this->LanguageJson['False'];
         if($this->dbname!==''){
-            $array=$this->GetAllList();
+            $array=$this->GetAllLists();
             if (empty($array)) {
                 $DBList=$this->LanguageJson['Null'];
             }
