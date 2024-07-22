@@ -310,11 +310,9 @@ class jsonDB{
         $this->ConfigInit();
         $ReportErrorStatus = $this->LanguageJson['True'];
         $DBStatus = $this->LanguageJson['ConnectedDB'].' '.$this->dbname;
-        $LightSKStatus = $this->LanguageJson['True'];
         if($this->ReportError==false) $ReportErrorStatus = $this->LanguageJson['False'];
         if($this->dbname=='') $DBStatus = $this->LanguageJson['Disconnect'];;
         $DBList = '';
-        if($this->LightSK==false) $LightSKStatus = $this->LanguageJson['False'];
         if($this->dbname!==''){
             $array=$this->GetAllLists();
             if (empty($array)) {
@@ -349,10 +347,6 @@ class jsonDB{
           <tr>
             <td>'.$this->LanguageJson['DBConnectionStatus'].':</td>
             <td>'.$DBStatus.'</td>
-          </tr>
-          <tr>
-            <td>'.$this->LanguageJson['LightSKStatus'].':</td>
-            <td>'.$LightSKStatus.'</td>
           </tr>
           <tr>
             <td>'.$this->LanguageJson['Lang'].'</td>
